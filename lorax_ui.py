@@ -367,9 +367,6 @@ with gr.Blocks(css=css, head=header) as demo:
             
             submit_btn = gr.Button("Generate", variant="primary")
 
-    # with gr.Row():
-    #     submit_btn = gr.Button("Generate", variant="primary")
-
     with gr.Row():
         output_text = gr.Textbox(
             lines=6,
