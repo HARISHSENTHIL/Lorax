@@ -1,0 +1,5 @@
+docker run --gpus all --shm-size 1g -p 8080:80 \
+    -v $PWD/data:/data \
+    -v path to the directory /.cache/huggingface:/root/.cache/huggingface \
+    -v path to the directory /saves:/adapters \
+    ghcr.io/predibase/lorax:main --model-id mistralai/Mistral-7B-Instruct-v0.1
