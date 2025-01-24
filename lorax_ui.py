@@ -1,7 +1,6 @@
 import gradio as gr
 import os
 from lorax import Client
-import sys
 from datetime import datetime
 
 # from .ui import css, only_html, header
@@ -280,7 +279,7 @@ async function logout() {
 '''
 
 
-client = Client("http://127.0.0.1:8080")
+client =  Client("http://127.0.0.1:8080")
 
 BASE_MODELS = {
     "Mistral-7B-Instruct-v0.1": "mistralai/Mistral-7B-Instruct-v0.1",
@@ -301,33 +300,38 @@ def get_local_adapters(base_path="/home/ubuntu/Apps/LLamafactory-web3/saves"):
 
 LOCAL_ADAPTERS = get_local_adapters()
 
-def generate_response(model_name, adapter_name, prompt, max_tokens=64):
+def hello():
+    return "hello"
+
+def generate_response(model_name, adapter_name, prompt, max_tokens=64, temperature=0.7, system_prompt=""):
     try:
         logger.log(f"Selected model: {model_name}")
         logger.log(f"Selected adapter: {adapter_name}")
-        logger.log(f"Prompt: {prompt}")
-        logger.log(f"Max tokens: {max_tokens}")
-
+        
+        full_prompt = f"[INST] {system_prompt}\n\n{prompt} [/INST]" if system_prompt else f"[INST] {prompt} [/INST]"
+        
         if adapter_name != "None" and adapter_name in LOCAL_ADAPTERS:
-            container_adapter_path = f"/adapters/{model_name}/lora/{adapter_name}"
-            logger.log(f"Using adapter: {container_adapter_path}")
             response = client.generate(
-                prompt,
+                full_prompt,
                 max_new_tokens=max_tokens,
-                adapter_id=container_adapter_path,
-                adapter_source="local"
+                adapter_id=f"/adapters/{model_name}/lora/{adapter_name}",
+                adapter_source="local",
+                temperature=temperature
             )
         else:
             logger.log("No adapter selected, using base model")
             response = client.generate(
-                prompt,
-                max_new_tokens=max_tokens
+                full_prompt,
+                max_new_tokens=max_tokens,
+                temperature=temperature
             )
         logger.log("Generation completed successfully")
         return response.generated_text, logger.logs[-10:]
     except Exception as e:
         return f"Error: {str(e)}"
-
+    
+def clear_feild():
+    return "", ""
 
 with gr.Blocks(css=css, head=header) as demo:
     wallet_address = gr.Textbox(value=None, elem_id="wallet-address-textbox", visible=False)
@@ -349,10 +353,10 @@ with gr.Blocks(css=css, head=header) as demo:
             )
 
     with gr.Row():
-        input_text = gr.Textbox(
-            lines=4,
-            label="Input Prompt",
-            placeholder="Enter your prompt here..."
+        system_prompt = gr.Textbox(
+            lines=2,
+            label="System Prompt",
+            placeholder="Optional: Add system instructions here..."
         )
         with gr.Column(elem_classes="slider_submit"):
             max_tokens = gr.Slider(
@@ -363,9 +367,23 @@ with gr.Blocks(css=css, head=header) as demo:
                 label="Max Tokens"
                 
             )
+            temperature = gr.Slider(
+            minimum=0.1,
+            maximum=1.0,
+            value=0.7,
+            step=0.1,
+            label="Temperature"
+        )
             
-            
-            submit_btn = gr.Button("Generate", variant="primary")
+    with gr.Row():
+        input_text = gr.Textbox(
+            lines=4,
+            label="Input Prompt",
+            placeholder="Enter your prompt here..."
+        )
+    with gr.Row():
+        submit_btn = gr.Button("Generate", variant="primary")
+        clear_history = gr.Button("Clear history", variant="secondary")
 
     with gr.Row():
         output_text = gr.Textbox(
@@ -378,9 +396,11 @@ with gr.Blocks(css=css, head=header) as demo:
 
     submit_btn.click(
         fn=generate_response,
-        inputs=[model_dropdown, adapter_dropdown, input_text, max_tokens],
+        inputs=[model_dropdown, adapter_dropdown, input_text, max_tokens, temperature, system_prompt],
         outputs=[output_text, log_box]
     )
+    
+    clear_history.click(fn=clear_feild, inputs=[], outputs=[input_text, output_text])
 
 
 if __name__ == "__main__":
