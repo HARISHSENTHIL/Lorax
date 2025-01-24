@@ -326,7 +326,7 @@ def generate_response(model_name, adapter_name, prompt, max_tokens=64, temperatu
                 temperature=temperature
             )
         logger.log("Generation completed successfully")
-        return response.generated_text, logger.logs[-10:]
+        return response.generated_text, "\n".join(logger.logs[-10:])
     except Exception as e:
         return f"Error: {str(e)}"
     
