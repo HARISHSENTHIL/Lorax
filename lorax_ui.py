@@ -3,8 +3,6 @@ import os
 from lorax import Client
 from datetime import datetime
 
-# from .ui import css, only_html, header
-
 class Logger:
     def __init__(self):
         self.logs = []
@@ -300,9 +298,6 @@ def get_local_adapters(base_path="/home/ubuntu/Apps/LLamafactory-web3/saves"):
 
 LOCAL_ADAPTERS = get_local_adapters()
 
-def hello():
-    return "hello"
-
 def generate_response(model_name, adapter_name, prompt, max_tokens=64, temperature=0.7, system_prompt=""):
     try:
         logger.log(f"Selected model: {model_name}")
@@ -332,6 +327,11 @@ def generate_response(model_name, adapter_name, prompt, max_tokens=64, temperatu
     
 def clear_feild():
     return "", ""
+
+def referesh_adapters():
+    adapters = get_local_adapters()
+    choices = ["None"] + list(adapters.keys())
+    return choices  
 
 with gr.Blocks(css=css, head=header) as demo:
     wallet_address = gr.Textbox(value=None, elem_id="wallet-address-textbox", visible=False)
@@ -384,6 +384,7 @@ with gr.Blocks(css=css, head=header) as demo:
     with gr.Row():
         submit_btn = gr.Button("Generate", variant="primary")
         clear_history = gr.Button("Clear history", variant="secondary")
+        referesh_btn = gr.Button("🔄", scale=0.1)
 
     with gr.Row():
         output_text = gr.Textbox(
@@ -396,6 +397,11 @@ with gr.Blocks(css=css, head=header) as demo:
 
     submit_btn.click(
         fn=generate_response,
+        inputs=[model_dropdown, adapter_dropdown, input_text, max_tokens, temperature, system_prompt],
+        outputs=[output_text, log_box]
+    )
+    referesh_btn.click(
+        fn=referesh_adapters,
         inputs=[model_dropdown, adapter_dropdown, input_text, max_tokens, temperature, system_prompt],
         outputs=[output_text, log_box]
     )
