@@ -296,16 +296,18 @@ def get_local_adapters(base_path="/home/ubuntu/Apps/LLamafactory-web3/saves"):
                         adapters[adapter_dir] = adapter_path
     return adapters
 
-LOCAL_ADAPTERS = get_local_adapters()
+# LOCAL_ADAPTERS = get_local_adapters()
+
 
 def generate_response(model_name, adapter_name, prompt, max_tokens=64, temperature=0.7, system_prompt=""):
     try:
         logger.log(f"Selected model: {model_name}")
         logger.log(f"Selected adapter: {adapter_name}")
-        
+
         full_prompt = f"[INST] {system_prompt}\n\n{prompt} [/INST]" if system_prompt else f"[INST] {prompt} [/INST]"
+        current_adapters = get_local_adapters()
         
-        if adapter_name != "None" and adapter_name in LOCAL_ADAPTERS:
+        if adapter_name != "None" and adapter_name in current_adapters:
             response = client.generate(
                 full_prompt,
                 max_new_tokens=max_tokens,
@@ -324,14 +326,13 @@ def generate_response(model_name, adapter_name, prompt, max_tokens=64, temperatu
         return response.generated_text, "\n".join(logger.logs[-10:])
     except Exception as e:
         return f"Error: {str(e)}"
-    
+
 def clear_feild():
     return "", ""
 
-def referesh_adapters():
-    adapters = get_local_adapters()
-    choices = ["None"] + list(adapters.keys())
-    return choices  
+def update_adapter_choices():
+    current_adapters = get_local_adapters()
+    return gr.update(choices=["None"] + list(current_adapters.keys()))
 
 with gr.Blocks(css=css, head=header) as demo:
     wallet_address = gr.Textbox(value=None, elem_id="wallet-address-textbox", visible=False)
@@ -345,9 +346,10 @@ with gr.Blocks(css=css, head=header) as demo:
                 value=list(BASE_MODELS.keys())[0],
                 label="Select Base Model"
             )
-
+            
+            current_adapters = get_local_adapters()
             adapter_dropdown = gr.Dropdown(
-                choices=["None"] + list(LOCAL_ADAPTERS.keys()),
+                choices=["None"] + list(current_adapters.keys()),
                 value="None",
                 label="Select LoRA Adapter"
             )
@@ -365,7 +367,7 @@ with gr.Blocks(css=css, head=header) as demo:
                 value=64,
                 step=16,
                 label="Max Tokens"
-                
+
             )
             temperature = gr.Slider(
             minimum=0.1,
@@ -374,7 +376,7 @@ with gr.Blocks(css=css, head=header) as demo:
             step=0.1,
             label="Temperature"
         )
-            
+
     with gr.Row():
         input_text = gr.Textbox(
             lines=4,
@@ -384,7 +386,7 @@ with gr.Blocks(css=css, head=header) as demo:
     with gr.Row():
         submit_btn = gr.Button("Generate", variant="primary")
         clear_history = gr.Button("Clear history", variant="secondary")
-        referesh_btn = gr.Button("🔄", scale=0.1)
+        refresh_btn = gr.Button("Refresh Adapters")
 
     with gr.Row():
         output_text = gr.Textbox(
@@ -400,14 +402,13 @@ with gr.Blocks(css=css, head=header) as demo:
         inputs=[model_dropdown, adapter_dropdown, input_text, max_tokens, temperature, system_prompt],
         outputs=[output_text, log_box]
     )
-    referesh_btn.click(
-        fn=referesh_adapters,
-        inputs=[model_dropdown, adapter_dropdown, input_text, max_tokens, temperature, system_prompt],
-        outputs=[output_text, log_box]
-    )
     
+    refresh_btn.click(
+        fn=update_adapter_choices, 
+        inputs=[], 
+        outputs=[adapter_dropdown])
+
     clear_history.click(fn=clear_feild, inputs=[], outputs=[input_text, output_text])
-
-
+    demo.load(update_adapter_choices, outputs=[adapter_dropdown])
 if __name__ == "__main__":
     demo.launch(server_name="0.0.0.0", share=True, server_port=7500)
